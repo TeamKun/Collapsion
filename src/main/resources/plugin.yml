@@ -1,0 +1,9 @@
+name: Collapsion
+version: ${project.version}
+main: com.github.otamusan.collapsion.Collapsion
+api-version: 1.15
+commands:
+  start:
+    description: Sample command.
+  speed:
+    description: Sample command.

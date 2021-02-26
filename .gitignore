@@ -1,7 +1,7 @@
 # User-specific stuff
 .idea/
-.target/
-.server/
+target/
+server/
 *.iml
 *.ipr
 *.iws

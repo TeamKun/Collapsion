@@ -1,4 +1,4 @@
-package com.github.otamusan.collapsion;
+package net.kunmc.lab.collapsion;
 
 import javafx.util.Pair;
 

@@ -1,4 +1,4 @@
-package com.github.otamusan.collapsion;
+package net.kunmc.lab.collapsion;
 
 public class QueueData {
     private final Object object;

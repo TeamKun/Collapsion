@@ -14,6 +14,9 @@ public class Queues {
     public static class Command{
         public static final Command START = new Command();
         public static final Command SPEED = new Command();
+        //public static final Command SKIP = new Command();
+        public static final Command REGENERATE = new Command();
+
     }
 
     public LinkedList<QueueData> getList() {
@@ -35,11 +38,14 @@ public class Queues {
     public Optional<QueueData> getLatestQueue(Command name, QueueData exclude){
         return list.stream().filter(data -> (data.isCommandEqual(name) && data != exclude)).findFirst();
     }
-
+    public boolean shouldRegenerate(int pretick, int currnttick){
+        Optional<QueueData> queue = getLatestQueue(Command.REGENERATE);
+        if(!queue.isPresent()) return false;
+        return queue.get().getCommandTick()>=pretick && queue.get().getCommandTick()<=currnttick;
+    }
 
     public boolean isStarted(){
-        if(list.isEmpty()) return false;
-        return true;
+        return !list.isEmpty();
         //return getLatestQueue(Command.START).isPresent();
     }
 
@@ -79,24 +85,30 @@ public class Queues {
         double s = 0;
         for (int i = 0; i < list.size(); i++) {
             QueueData queue = list.get(list.size() - i - 1);
-            t += getSectionTick(pre,queue.getCommandTick(), tick, (Double) queue.getObject());
-            pre = queue.getCommandTick();
-            s= (Double) queue.getObject();
+            //t += getSectionTick(pre,queue.getCommandTick(), tick, (Double) queue.getObject());
+            if(queue.getCommand()==Command.SPEED || queue.getCommand() == Command.START) {
+                t += getSectionTick(pre - getStartedTick(), queue.getCommandTick() - getStartedTick(), tick, s);
+                s= (Double) queue.getObject();
+                pre = queue.getCommandTick();
+            }else if(queue.getCommand() == Command.REGENERATE){
+                t=0;
+            }
         }
-        t += getSectionTick(pre,tick, tick,s);
-
+        t += getSectionTick(pre-getStartedTick(),tick, tick,s);
         return t;
     }
     public int getSectionTick(int prequeuetick, int queuetick, int currenttick, double speed) {
         int e = 0;
         if (currenttick >= queuetick) {
-            e = queuetick;
+            e = queuetick-prequeuetick;
         } else if (currenttick >= prequeuetick && currenttick < queuetick) {
-            e = currenttick;
+            e = currenttick-prequeuetick;
         } else if (currenttick < prequeuetick) {
-            e = prequeuetick;
+            e = 0;
+        } else{
+            throw new Error();
         }
-
+        //System.out.println((int) (((double) e) * speed));
         return (int) (((double) e) * speed);
     }
 

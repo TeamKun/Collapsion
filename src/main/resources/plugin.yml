@@ -3,7 +3,11 @@ version: ${project.version}
 main: net.kunmc.lab.collapsion.Collapsion
 api-version: 1.15
 commands:
-  start:
-    description: Sample command.
-  speed:
-    description: Sample command.
+  col_start:
+    description: Starting collapse.
+  col_speed:
+    description: Change the speed of collapse.
+  col_reset:
+    description: Reset progress.
+  col_updateTick:
+    description: Regenerate Chunks.

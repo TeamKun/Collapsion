@@ -20,10 +20,12 @@ public final class Collapsion extends JavaPlugin implements Listener {
     public static Queues queues;
     public static Map<Long, ChunkData> chunkDataMap;
     public static Server server;
+    public static Thread thread;
     @Override
     public void onEnable() {
         getServer().getPluginManager().registerEvents(this,this);
-        new Thread(getServer()).runTaskTimer(this, 1, 50);
+        thread = new Thread(getServer());
+        thread.runTaskTimer(this, 1, 50);
         queues = new Queues();
         chunkDataMap = new HashMap<>();
         server = getServer();
@@ -31,18 +33,96 @@ public final class Collapsion extends JavaPlugin implements Listener {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-
-        if(command.getName().equals("start")) {
-            if(args.length!=1) return false;
-            double speed = Double.parseDouble(args[0]);
-            queues.addQueue(new QueueData(Queues.Command.START,server.getCurrentTick(), speed));
-        }else if(command.getName().equals("speed")){
-            if(!queues.getLatestQueue(Queues.Command.START).isPresent()) return false;
-            if(args.length!=1) return false;
-            double speed = Double.parseDouble(args[0]);
-            queues.addQueue(new QueueData( Queues.Command.SPEED,server.getCurrentTick(), speed));
+        if(!sender.isOp()){
+            sender.sendMessage("no permissions");
+            return false;
         }
+
+        if(command.getName().equals("col_start")) {
+            if(queues.getLatestQueue(Queues.Command.START).isPresent()){
+                sender.sendMessage("already started");
+                return false;
+            }
+            if(args.length!=1) {
+                sender.sendMessage("not enough args");
+                return false;
+            }
+            try {
+                double speed = Double.parseDouble(args[0]);
+                queues.addQueue(new QueueData(Queues.Command.START,server.getCurrentTick(), speed));
+                sender.sendMessage("start!");
+            }catch (NumberFormatException e){
+                sender.sendMessage("use double");
+            }
+        }else if(command.getName().equals("col_speed")){
+            if(!queues.getLatestQueue(Queues.Command.START).isPresent()){
+                sender.sendMessage("not started");
+                return false;
+            }
+            if(args.length!=1){
+                sender.sendMessage("not enough args");
+                return false;
+            }
+            try {
+                double speed = Double.parseDouble(args[0]);
+                queues.addQueue(new QueueData( Queues.Command.SPEED,server.getCurrentTick(), speed));
+                sender.sendMessage("changed!");
+            }catch (NumberFormatException e){
+                sender.sendMessage("use double");
+            }
+
+
+        }else if(command.getName().equals("col_reset")){
+            if(!queues.getLatestQueue(Queues.Command.START).isPresent()){
+                sender.sendMessage("not started");
+                return false;
+            }
+            queues = new Queues();
+            chunkDataMap = new HashMap<>();
+            sender.sendMessage("reseted!");
+        }else if(command.getName().equals("col_updateTick")){
+            if(args.length!=1){
+                sender.sendMessage("not enough args");
+                return false;
+            }
+            try {
+                int speed = Integer.parseInt(args[0]);
+                thread.cancel();
+                thread = new Thread(getServer());
+                thread.runTaskTimer(this, 1, speed);
+                sender.sendMessage("changed the update interval");
+            }catch (NumberFormatException e){
+                sender.sendMessage("use integer");
+            }
+        }/*else if(command.getName().equals("col_skip")){
+            if(!queues.getLatestQueue(Queues.Command.START).isPresent()){
+                sender.sendMessage("not started");
+                return false;
+            }
+            if(args.length!=1){
+                sender.sendMessage("not enough args");
+                return false;
+            }
+            try {
+                int tick = Integer.parseInt(args[0]);
+                queues.addQueue(new QueueData( Queues.Command.SKIP,server.getCurrentTick(), tick));
+                sender.sendMessage("skipped!");
+            }catch (NumberFormatException e){
+                sender.sendMessage("use integer");
+            }
+        }*/
         return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if(command.getName().equals("col_start") && args[0].length()==0) {
+            return Collections.singletonList("0.02");
+        }
+        if(command.getName().equals("col_speed") && args[0].length()==0) {
+            return Collections.singletonList("0.00");
+        }
+        return super.onTabComplete(sender, command, alias, args);
     }
 
     @Override
@@ -54,8 +134,20 @@ public final class Collapsion extends JavaPlugin implements Listener {
         if(!queues.isStarted()) return;
         Chunk chunk = event.getChunk();
         if(event.isNewChunk()) return;
-        //updateChunk(chunk);
-        new UpdateChunk(chunk).runTaskAsynchronously(this);
+        updateChunk(chunk);
+        /*Pair<Integer,Integer> ticks = queues.getTicks(createOrGetChunkData(chunk).getLastUpdatedTick().orElse(queues.getStartedTick()),server.getCurrentTick());
+        if(ticks.getValue()-ticks.getKey()>=255){
+            for (int x = 0; x < 16; x++) {
+                for (int z = 0; z < 16; z++) {
+                    for (int y = 0; y < 256; y++) {
+                        Block block = chunk.getBlock(x, y, z);
+                        block.setType(Material.AIR, false);
+                    }
+                }
+            }
+            return;
+        }
+        new UpdateChunk(chunk).runTaskAsynchronously(this);*/
     }
     public static class UpdateChunk extends BukkitRunnable {
         private Chunk chunk;
@@ -67,7 +159,7 @@ public final class Collapsion extends JavaPlugin implements Listener {
             try {
                 updateChunk(chunk);
             }catch (Exception e){
-
+                //e.printStackTrace();
             }
         }
     }
@@ -75,8 +167,21 @@ public final class Collapsion extends JavaPlugin implements Listener {
     public void onCreatedChunk(ChunkPopulateEvent event){
         if(!queues.isStarted()) return;
         Chunk chunk = event.getChunk();
-        //updateChunk(chunk);
-        new UpdateChunk(chunk).runTaskAsynchronously(this);
+        updateChunk(chunk);
+        /*Pair<Integer,Integer> ticks = queues.getTicks(createOrGetChunkData(chunk).getLastUpdatedTick().orElse(queues.getStartedTick()),server.getCurrentTick());
+        if(ticks.getValue()-ticks.getKey()>=255){
+            for (int x = 0; x < 16; x++) {
+                for (int z = 0; z < 16; z++) {
+
+                    for (int y = 0; y < 256; y++) {
+                        Block block = chunk.getBlock(x, y, z);
+                        block.setType(Material.AIR, false);
+                    }
+                }
+            }
+            return;
+        }
+        new UpdateChunk(chunk).runTaskAsynchronously(this);*/
     }
 
     public static ChunkData createOrGetChunkData(Chunk chunk){
@@ -122,7 +227,10 @@ public final class Collapsion extends JavaPlugin implements Listener {
         }*/
 
         Pair<Integer,Integer> ticks = queues.getTicks(data.getLastUpdatedTick().orElse(queues.getStartedTick()),server.getCurrentTick());
-        //System.out.println(data.getLastUpdatedTick()+":"+ticks);
+        //if(queues.shouldRegenerate(ticks.getKey(), ticks.getValue())){
+        //    regenerateChunk(chunk);
+        //}
+        System.out.println(data.getLastUpdatedTick()+":"+ticks);
 
         updateChunk(ticks.getKey(),ticks.getValue(),chunk);
 
@@ -143,8 +251,11 @@ public final class Collapsion extends JavaPlugin implements Listener {
     public static void updateChunk(int preTick, int currentTick, Chunk chunk){
         //int a = preTick+60;
         //int b = currentTick+60;
+
         int a = currentTick-preTick;
         for (int i = 0; i < a; i++) {
+            ArrayList<Integer> data = createOrGetChunkData(chunk).getList();
+            if(data.size() <= 0)return;
             Pair<Integer,Integer> p = getloc(chunk);
             for (int y = 0; y < 256; y++) {
                 Block block = chunk.getBlock(p.getKey(), y, p.getValue());
@@ -191,10 +302,6 @@ public final class Collapsion extends JavaPlugin implements Listener {
             }
         }*/
 
-    }
-
-    public static void regenerateChunk(Chunk chunk){
-        chunk.getWorld().regenerateChunk(chunk.getX(), chunk.getZ());
     }
 
     public static class Thread extends BukkitRunnable {

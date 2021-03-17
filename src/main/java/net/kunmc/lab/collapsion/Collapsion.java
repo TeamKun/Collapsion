@@ -1,6 +1,5 @@
 package net.kunmc.lab.collapsion;
 
-import javafx.util.Pair;
 import org.bukkit.Chunk;
 import org.bukkit.Material;
 import org.bukkit.Server;
@@ -226,18 +225,18 @@ public final class Collapsion extends JavaPlugin implements Listener {
             data.setLastUpdatedTick(currentTick);
         }*/
 
-        Pair<Integer,Integer> ticks = queues.getTicks(data.getLastUpdatedTick().orElse(queues.getStartedTick()),server.getCurrentTick());
+        Tuple<Integer,Integer> ticks = queues.getTicks(data.getLastUpdatedTick().orElse(queues.getStartedTick()),server.getCurrentTick());
         //if(queues.shouldRegenerate(ticks.getKey(), ticks.getValue())){
         //    regenerateChunk(chunk);
         //}
-        System.out.println(data.getLastUpdatedTick()+":"+ticks);
+        //System.out.println(data.getLastUpdatedTick()+":"+ticks);
 
-        updateChunk(ticks.getKey(),ticks.getValue(),chunk);
+        updateChunk(ticks.getLeft(),ticks.getRight(),chunk);
 
         data.setLastUpdatedTick(server.getCurrentTick());
     }
 
-    public static Pair<Integer,Integer> getloc(Chunk chunk){
+    public static Tuple<Integer,Integer> getloc(Chunk chunk){
         Random rnd = new Random(chunk.getChunkKey());
         ArrayList<Integer> data = createOrGetChunkData(chunk).getList();
         int n = rnd.nextInt(data.size());
@@ -245,7 +244,7 @@ public final class Collapsion extends JavaPlugin implements Listener {
         data.remove(n);
         int x = i%16;
         int z = (int) Math.floor(i/16);
-        return new Pair<>(x,z);
+        return new Tuple<>(x,z);
     }
 
     public static void updateChunk(int preTick, int currentTick, Chunk chunk){
@@ -256,9 +255,9 @@ public final class Collapsion extends JavaPlugin implements Listener {
         for (int i = 0; i < a; i++) {
             ArrayList<Integer> data = createOrGetChunkData(chunk).getList();
             if(data.size() <= 0)return;
-            Pair<Integer,Integer> p = getloc(chunk);
+            Tuple<Integer,Integer> p = getloc(chunk);
             for (int y = 0; y < 256; y++) {
-                Block block = chunk.getBlock(p.getKey(), y, p.getValue());
+                Block block = chunk.getBlock(p.getLeft(), y, p.getRight());
                 block.setType(Material.AIR, false);
             }
         }

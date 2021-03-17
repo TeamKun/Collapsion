@@ -1,7 +1,5 @@
 package net.kunmc.lab.collapsion;
 
-import javafx.util.Pair;
-
 import java.util.LinkedList;
 import java.util.Optional;
 
@@ -16,7 +14,6 @@ public class Queues {
         public static final Command SPEED = new Command();
         //public static final Command SKIP = new Command();
         public static final Command REGENERATE = new Command();
-
     }
 
     public LinkedList<QueueData> getList() {
@@ -38,6 +35,7 @@ public class Queues {
     public Optional<QueueData> getLatestQueue(Command name, QueueData exclude){
         return list.stream().filter(data -> (data.isCommandEqual(name) && data != exclude)).findFirst();
     }
+
     public boolean shouldRegenerate(int pretick, int currnttick){
         Optional<QueueData> queue = getLatestQueue(Command.REGENERATE);
         if(!queue.isPresent()) return false;
@@ -75,8 +73,8 @@ public class Queues {
         return tick;
     }*/
 
-    public Pair<Integer,Integer> getTicks(final int pretick, final int currenttick){
-        return new Pair<>(getTick(pretick-getStartedTick()),getTick(currenttick-getStartedTick()));
+    public Tuple<Integer,Integer> getTicks(final int pretick, final int currenttick){
+        return new Tuple<>(getTick(pretick-getStartedTick()),getTick(currenttick-getStartedTick()));
     }
 
     public int getTick(final int tick){

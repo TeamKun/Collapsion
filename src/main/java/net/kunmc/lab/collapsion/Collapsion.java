@@ -1,18 +1,23 @@
 package net.kunmc.lab.collapsion;
 
+import net.minecraft.server.v1_15_R1.*;
 import org.bukkit.Chunk;
-import org.bukkit.Material;
 import org.bukkit.Server;
 import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.craftbukkit.v1_15_R1.block.CapturedBlockState;
+import org.bukkit.craftbukkit.v1_15_R1.block.CraftBlock;
+import org.bukkit.craftbukkit.v1_15_R1.block.data.CraftBlockData;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkPopulateEvent;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import java.lang.reflect.Field;
 import java.util.*;
 
 public final class Collapsion extends JavaPlugin implements Listener {
@@ -20,6 +25,8 @@ public final class Collapsion extends JavaPlugin implements Listener {
     public static Map<Long, ChunkData> chunkDataMap;
     public static Server server;
     public static Thread thread;
+    public static Plugin plugin;
+    public static Random random;
     @Override
     public void onEnable() {
         getServer().getPluginManager().registerEvents(this,this);
@@ -27,7 +34,9 @@ public final class Collapsion extends JavaPlugin implements Listener {
         thread.runTaskTimer(this, 1, 50);
         queues = new Queues();
         chunkDataMap = new HashMap<>();
+        plugin = this;
         server = getServer();
+        random = new Random();
     }
 
     @Override
@@ -134,6 +143,7 @@ public final class Collapsion extends JavaPlugin implements Listener {
         Chunk chunk = event.getChunk();
         if(event.isNewChunk()) return;
         updateChunk(chunk);
+        //new UpdateChunk(chunk).runTaskAsynchronously(plugin);
         /*Pair<Integer,Integer> ticks = queues.getTicks(createOrGetChunkData(chunk).getLastUpdatedTick().orElse(queues.getStartedTick()),server.getCurrentTick());
         if(ticks.getValue()-ticks.getKey()>=255){
             for (int x = 0; x < 16; x++) {
@@ -156,7 +166,13 @@ public final class Collapsion extends JavaPlugin implements Listener {
         @Override
         public void run() {
             try {
-                updateChunk(chunk);
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        updateChunk(chunk);
+                    }
+                }.runTask(plugin);
+                //updateChunk(chunk);
             }catch (Exception e){
                 //e.printStackTrace();
             }
@@ -167,6 +183,8 @@ public final class Collapsion extends JavaPlugin implements Listener {
         if(!queues.isStarted()) return;
         Chunk chunk = event.getChunk();
         updateChunk(chunk);
+        //new UpdateChunk(chunk).runTaskAsynchronously(plugin);
+
         /*Pair<Integer,Integer> ticks = queues.getTicks(createOrGetChunkData(chunk).getLastUpdatedTick().orElse(queues.getStartedTick()),server.getCurrentTick());
         if(ticks.getValue()-ticks.getKey()>=255){
             for (int x = 0; x < 16; x++) {
@@ -230,7 +248,7 @@ public final class Collapsion extends JavaPlugin implements Listener {
         //    regenerateChunk(chunk);
         //}
         //System.out.println(data.getLastUpdatedTick()+":"+ticks);
-
+        System.out.println(ticks);
         updateChunk(ticks.getLeft(),ticks.getRight(),chunk);
 
         data.setLastUpdatedTick(server.getCurrentTick());
@@ -247,20 +265,111 @@ public final class Collapsion extends JavaPlugin implements Listener {
         return new Tuple<>(x,z);
     }
 
+    public static boolean setTypeAndDataWithoutLight(World world, BlockPosition blockposition, IBlockData iblockdata, int i) {
+        if (world.captureTreeGeneration) {
+            CapturedBlockState blockstate = (CapturedBlockState)world.capturedBlockStates.get(blockposition);
+            if (blockstate == null) {
+                blockstate = CapturedBlockState.getTreeBlockState(world, blockposition, i);
+                world.capturedBlockStates.put(blockposition.immutableCopy(), blockstate);
+            }
+
+            blockstate.setData(iblockdata);
+            return true;
+        } else if (world.isOutsideWorld(blockposition)) {
+            return false;
+        } else if (!world.isClientSide && world.worldData.getType() == WorldType.DEBUG_ALL_BLOCK_STATES) {
+            return false;
+        } else {
+            net.minecraft.server.v1_15_R1.Chunk chunk = world.getChunkAtWorldCoords(blockposition);
+            net.minecraft.server.v1_15_R1.Block block = iblockdata.getBlock();
+            boolean captured = false;
+            if (world.captureBlockStates && !world.capturedBlockStates.containsKey(blockposition)) {
+                CapturedBlockState blockstate = CapturedBlockState.getBlockState(world, blockposition, i);
+                world.capturedBlockStates.put(blockposition.immutableCopy(), blockstate);
+                captured = true;
+            }
+
+            IBlockData iblockdata1 = chunk.setType(blockposition, iblockdata, (i & 64) != 0, (i & 1024) == 0);
+            if (iblockdata1 == null) {
+                if (world.captureBlockStates && captured) {
+                    world.capturedBlockStates.remove(blockposition);
+                }
+
+                return false;
+            } else {
+                IBlockData iblockdata2 = world.getType(blockposition);
+                if (iblockdata2 != iblockdata1 && (iblockdata2.b(world, blockposition) != iblockdata1.b(world, blockposition) || iblockdata2.h() != iblockdata1.h() || iblockdata2.g() || iblockdata1.g())) {
+                    //world.getMethodProfiler().enter("queueCheckLight");
+                    //world.getChunkProvider().getLightEngine().a(blockposition);
+                    //world.getMethodProfiler().exit();
+                }
+
+                if (!world.captureBlockStates) {
+                    try {
+                        world.notifyAndUpdatePhysics(blockposition, chunk, iblockdata1, iblockdata, iblockdata2, i);
+                    } catch (StackOverflowError var10) {
+                        world.lastPhysicsProblem = new BlockPosition(blockposition);
+                    }
+                }
+
+                return true;
+            }
+        }
+    }
+
+    public static boolean setTypeAndData(CraftBlock block, IBlockData blockData, boolean applyPhysics) {
+        GeneratorAccess world = null;
+        try {
+            Field fworld = CraftBlock.class.getDeclaredField("world");
+            fworld.setAccessible(true);
+            world= (GeneratorAccess) fworld.get(block);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            e.printStackTrace();
+        }
+
+        if (!blockData.isAir() && blockData.getBlock() instanceof BlockTileEntity && blockData.getBlock() != block.getNMS().getBlock()) {
+            if (block.getWorld() instanceof net.minecraft.server.v1_15_R1.World) {
+                ((net.minecraft.server.v1_15_R1.World) block.getWorld()).removeTileEntity(block.getPosition());
+            } else {
+                //block.getWorld().setTypeAndData(block.getPosition(), Blocks.AIR.getBlockData(), 0);
+                setTypeAndDataWithoutLight((World) block.getWorld(), block.getPosition(), Blocks.AIR.getBlockData(),0);
+            }
+        }
+
+        if (applyPhysics) {
+            return setTypeAndDataWithoutLight((World) block.getWorld(),block.getPosition(),blockData, 3);
+        } else {
+            IBlockData old = world.getType(block.getPosition());
+            //boolean success = world.setTypeAndData(block.getPosition(), blockData, 1042);
+            boolean success = setTypeAndDataWithoutLight((World) world, block.getPosition(),blockData,1042);
+            if (success) {
+                world.getMinecraftWorld().notify(block.getPosition(), old, blockData, 3);
+            }
+
+            return success;
+        }
+    }
+
     public static void updateChunk(int preTick, int currentTick, Chunk chunk){
         //int a = preTick+60;
         //int b = currentTick+60;
-
-        int a = currentTick-preTick;
-        for (int i = 0; i < a; i++) {
-            ArrayList<Integer> data = createOrGetChunkData(chunk).getList();
-            if(data.size() <= 0)return;
-            Tuple<Integer,Integer> p = getloc(chunk);
-            for (int y = 0; y < 256; y++) {
-                Block block = chunk.getBlock(p.getLeft(), y, p.getRight());
-                block.setType(Material.AIR, false);
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                int a = currentTick-preTick;
+                for (int i = 0; i < a; i++) {
+                    ArrayList<Integer> data = createOrGetChunkData(chunk).getList();
+                    if(data.size() <= 0)return;
+                    Tuple<Integer,Integer> p = getloc(chunk);
+                    for (int y = 0; y < 256; y++) {
+                        Block block = chunk.getBlock(p.getLeft(), y, p.getRight());
+                        //block.setType(org.bukkit.Material.AIR, false);
+                        setTypeAndData((CraftBlock) block,((CraftBlockData) org.bukkit.Material.AIR.createBlockData()).getState() ,false);
+                    }
+                }
             }
-        }
+        }.runTaskLater(plugin,random.nextInt(20));
+
         /*int s = (int) ((Math.sin(preTick/60)*20)+60);
         int e = (int) ((Math.sin(currentTick/60)*20)+60);
         boolean f = false;

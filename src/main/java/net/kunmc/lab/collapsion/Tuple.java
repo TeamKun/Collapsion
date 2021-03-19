@@ -15,4 +15,12 @@ public class Tuple<A,B> {
     public B getRight() {
         return right;
     }
+
+    @Override
+    public String toString() {
+        return "Tuple{" +
+                "left=" + left +
+                ", right=" + right +
+                '}';
+    }
 }

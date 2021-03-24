@@ -102,23 +102,7 @@ public final class Collapsion extends JavaPlugin implements Listener {
             }catch (NumberFormatException e){
                 sender.sendMessage("use integer");
             }
-        }/*else if(command.getName().equals("col_skip")){
-            if(!queues.getLatestQueue(Queues.Command.START).isPresent()){
-                sender.sendMessage("not started");
-                return false;
-            }
-            if(args.length!=1){
-                sender.sendMessage("not enough args");
-                return false;
-            }
-            try {
-                int tick = Integer.parseInt(args[0]);
-                queues.addQueue(new QueueData( Queues.Command.SKIP,server.getCurrentTick(), tick));
-                sender.sendMessage("skipped!");
-            }catch (NumberFormatException e){
-                sender.sendMessage("use integer");
-            }
-        }*/
+        }
         return true;
     }
 
@@ -142,21 +126,8 @@ public final class Collapsion extends JavaPlugin implements Listener {
         if(!queues.isStarted()) return;
         Chunk chunk = event.getChunk();
         if(event.isNewChunk()) return;
-        updateChunk(chunk);
-        //new UpdateChunk(chunk).runTaskAsynchronously(plugin);
-        /*Pair<Integer,Integer> ticks = queues.getTicks(createOrGetChunkData(chunk).getLastUpdatedTick().orElse(queues.getStartedTick()),server.getCurrentTick());
-        if(ticks.getValue()-ticks.getKey()>=255){
-            for (int x = 0; x < 16; x++) {
-                for (int z = 0; z < 16; z++) {
-                    for (int y = 0; y < 256; y++) {
-                        Block block = chunk.getBlock(x, y, z);
-                        block.setType(Material.AIR, false);
-                    }
-                }
-            }
-            return;
-        }
-        new UpdateChunk(chunk).runTaskAsynchronously(this);*/
+        //updateChunk(chunk);
+        new UpdateChunk(chunk).runTaskAsynchronously(plugin);
     }
     public static class UpdateChunk extends BukkitRunnable {
         private Chunk chunk;
@@ -166,12 +137,12 @@ public final class Collapsion extends JavaPlugin implements Listener {
         @Override
         public void run() {
             try {
-                new BukkitRunnable() {
-                    @Override
-                    public void run() {
+                //new BukkitRunnable() {
+                //    @Override
+                //    public void run() {
                         updateChunk(chunk);
-                    }
-                }.runTask(plugin);
+                //    }
+                //}.runTask(plugin);
                 //updateChunk(chunk);
             }catch (Exception e){
                 //e.printStackTrace();
@@ -182,23 +153,9 @@ public final class Collapsion extends JavaPlugin implements Listener {
     public void onCreatedChunk(ChunkPopulateEvent event){
         if(!queues.isStarted()) return;
         Chunk chunk = event.getChunk();
-        updateChunk(chunk);
-        //new UpdateChunk(chunk).runTaskAsynchronously(plugin);
-
-        /*Pair<Integer,Integer> ticks = queues.getTicks(createOrGetChunkData(chunk).getLastUpdatedTick().orElse(queues.getStartedTick()),server.getCurrentTick());
-        if(ticks.getValue()-ticks.getKey()>=255){
-            for (int x = 0; x < 16; x++) {
-                for (int z = 0; z < 16; z++) {
-
-                    for (int y = 0; y < 256; y++) {
-                        Block block = chunk.getBlock(x, y, z);
-                        block.setType(Material.AIR, false);
-                    }
-                }
-            }
-            return;
-        }
-        new UpdateChunk(chunk).runTaskAsynchronously(this);*/
+        //updateChunk(chunk);
+        new UpdateChunk(chunk).runTaskAsynchronously(plugin);
+        //new UpdateChunk(chunk).runTaskAsynchronously(this);
     }
 
     public static ChunkData createOrGetChunkData(Chunk chunk){
@@ -219,36 +176,7 @@ public final class Collapsion extends JavaPlugin implements Listener {
     public static void updateChunk(Chunk chunk){
         ChunkData data = createOrGetChunkData(chunk);
 
-        /*QueueData queue = queues.getLatestQueue();
-        if(queue.getCommand()== Queues.Command.START) {
-            int currentTick = server.getCurrentTick();
-            int startTick = queue.getCommandTick();
-            int preTick = data.getLastUpdatedTick().orElse(startTick);
-            System.out.println(preTick+":"+startTick);
-            updateChunk(preTick-startTick, currentTick-startTick, chunk);
-            data.setLastUpdatedTick(currentTick);
-        }else if(queue.getCommand()== Queues.Command.PAUSE){
-            int currentTick = server.getCurrentTick();
-            int startTick = queue.getCommandTick();
-            int preTick = data.getLastUpdatedTick().orElse(startTick);
-            System.out.println(preTick+"l"+startTick);
-            updateChunk(preTick-startTick, startTick, chunk);
-            data.setLastUpdatedTick(currentTick);
-        }else if(queue.getCommand()== Queues.Command.RESUME){
-            int currentTick = server.getCurrentTick();
-            int startTick = queues.getList().stream().filter(queueData -> queueData != queue).filter(queueData -> queueData.isCommandEqual(Queues.Command.START) || queueData.isCommandEqual(Queues.Command.RESUME)).findFirst().get().getCommandTick();
-
-            int preTick = data.getLastUpdatedTick().orElse(startTick);
-            updateChunk(startTick, currentTick-startTick, chunk);
-            data.setLastUpdatedTick(currentTick);
-        }*/
-
         Tuple<Integer,Integer> ticks = queues.getTicks(data.getLastUpdatedTick().orElse(queues.getStartedTick()),server.getCurrentTick());
-        //if(queues.shouldRegenerate(ticks.getKey(), ticks.getValue())){
-        //    regenerateChunk(chunk);
-        //}
-        //System.out.println(data.getLastUpdatedTick()+":"+ticks);
-        System.out.println(ticks);
         updateChunk(ticks.getLeft(),ticks.getRight(),chunk);
 
         data.setLastUpdatedTick(server.getCurrentTick());
@@ -309,6 +237,8 @@ public final class Collapsion extends JavaPlugin implements Listener {
                         world.notifyAndUpdatePhysics(blockposition, chunk, iblockdata1, iblockdata, iblockdata2, i);
                     } catch (StackOverflowError var10) {
                         world.lastPhysicsProblem = new BlockPosition(blockposition);
+                        throw var10;
+
                     }
                 }
 
@@ -365,50 +295,12 @@ public final class Collapsion extends JavaPlugin implements Listener {
                         Block block = chunk.getBlock(p.getLeft(), y, p.getRight());
                         //block.setType(org.bukkit.Material.AIR, false);
                         setTypeAndData((CraftBlock) block,((CraftBlockData) org.bukkit.Material.AIR.createBlockData()).getState() ,false);
+
+
                     }
                 }
             }
         }.runTaskLater(plugin,random.nextInt(20));
-
-        /*int s = (int) ((Math.sin(preTick/60)*20)+60);
-        int e = (int) ((Math.sin(currentTick/60)*20)+60);
-        boolean f = false;
-        System.out.println(Math.sin(currentTick/30));
-        System.out.println(s+":"+e);
-
-        if(s > e) {
-            int buf = e;
-            e = s;
-            s = buf;
-            f = true;
-        }*/
-
-        //if (b >= 255) b=255;
-
-        /*for (int y = s; y < e; y++) {
-            for (int x = 0; x < 16; x++) {
-                for (int z = 0; z < 16; z++) {
-                    Block block = chunk.getBlock(x,y,z);
-                    if(f && block.getType() == Material.WATER){
-                        block.setType(Material.AIR,false);
-                        continue;
-                    }
-                    if(block.getType() == Material.AIR || block.getType()==Material.CAVE_AIR) {
-                        block.setType(Material.WATER,false);
-                    }
-                }
-            }
-        }*/
-        /*for (int y = a; y < b; y++) {
-            for (int x = 0; x < 16; x++) {
-                for (int z = 0; z < 16; z++) {
-                    Block block = chunk.getBlock(x,y,z);
-                    if(block.getType() == Material.AIR || block.getType() == Material.CAVE_AIR) {
-                        block.setType(Material.WATER,false);
-                    }
-                }
-            }
-        }*/
 
     }
 

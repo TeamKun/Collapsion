@@ -54,25 +54,6 @@ public class Queues {
         return 0;
     }
 
-    /*public int getPassedTick(int pretick){
-        int tick=0;
-        for (int i = 0; i < list.size(); i++) {
-            QueueData queue = list.get(list.size()-i-1);
-
-            if(queue.getCommand() == Command.PAUSE){
-                if(queue.getCommandTick()<pretick) continue;
-                int t=0;
-                QueueData queue2 = null;
-                for (int j = i; j < list.size(); j++) {
-                    if(list.get(list.size()-j).getCommand() != Command.RESUME) continue;
-                    queue2 = list.get(list.size()-j-1);
-                }
-                tick+=queue2.getCommandTick()-queue.getCommandTick();
-            }
-        }
-        return tick;
-    }*/
-
     public Tuple<Integer,Integer> getTicks(final int pretick, final int currenttick){
         return new Tuple<>(getTick(pretick-getStartedTick()),getTick(currenttick-getStartedTick()));
     }
@@ -98,7 +79,7 @@ public class Queues {
     public int getSectionTick(int prequeuetick, int queuetick, int currenttick, double speed) {
         int e = 0;
         if (currenttick >= queuetick) {
-            e = queuetick-prequeuetick;
+            e = queuetick;
         } else if (currenttick >= prequeuetick && currenttick < queuetick) {
             e = currenttick-prequeuetick;
         } else if (currenttick < prequeuetick) {
@@ -106,30 +87,6 @@ public class Queues {
         } else{
             throw new Error();
         }
-        //System.out.println((int) (((double) e) * speed));
         return (int) (((double) e) * speed);
     }
-
-    /*public int get(int prequeuetick, int queuetick, int pretick, int currenttick, double speed) {
-        int s = 0;
-        if (pretick >= queuetick) {
-            s = queuetick;
-        } else if (pretick >= prequeuetick && pretick < queuetick) {
-            s = pretick;
-        } else if (pretick < prequeuetick) {
-            s = prequeuetick;
-        }
-        int e = 0;
-        if (currenttick >= queuetick) {
-            e = queuetick;
-        } else if (currenttick >= prequeuetick && currenttick < queuetick) {
-            e = currenttick;
-        } else if (currenttick < prequeuetick) {
-            e = prequeuetick;
-        }
-
-        System.out.println(s+":"+e);
-
-        return (int) (((double) (e - s)) * speed);
-    }*/
 }

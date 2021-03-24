@@ -11,3 +11,7 @@ commands:
     description: Reset progress.
   col_updateTick:
     description: Regenerate Chunks.
+  col_pause:
+    description: Pause progress.
+  col_resume:
+    description: Resume progress.

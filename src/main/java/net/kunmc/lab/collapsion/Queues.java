@@ -14,6 +14,7 @@ public class Queues {
         public static final Command SPEED = new Command();
         //public static final Command SKIP = new Command();
         public static final Command REGENERATE = new Command();
+        public static final Command PAUSE = new Command();
     }
 
     public LinkedList<QueueData> getList() {
@@ -41,6 +42,10 @@ public class Queues {
         if(!queue.isPresent()) return false;
         return queue.get().getCommandTick()>=pretick && queue.get().getCommandTick()<=currnttick;
     }
+    public double getResumedSpeed(){
+        double speed = (double) list.stream().filter(queueData -> queueData.isCommandEqual(Command.START) || queueData.isCommandEqual(Command.SPEED)).findFirst().get().getObject();
+        return speed;
+    }
 
     public boolean isStarted(){
         return !list.isEmpty();
@@ -65,7 +70,7 @@ public class Queues {
         for (int i = 0; i < list.size(); i++) {
             QueueData queue = list.get(list.size() - i - 1);
             //t += getSectionTick(pre,queue.getCommandTick(), tick, (Double) queue.getObject());
-            if(queue.getCommand()==Command.SPEED || queue.getCommand() == Command.START) {
+            if(queue.getCommand()==Command.SPEED || queue.getCommand() == Command.START || queue.getCommand() == Command.PAUSE) {
                 t += getSectionTick(pre - getStartedTick(), queue.getCommandTick() - getStartedTick(), tick, s);
                 s= (Double) queue.getObject();
                 pre = queue.getCommandTick();

@@ -27,6 +27,7 @@ public final class Collapsion extends JavaPlugin implements Listener {
     public static Thread thread;
     public static Plugin plugin;
     public static Random random;
+    public static final double defaultspeed = 0.01;
     @Override
     public void onEnable() {
         getServer().getPluginManager().registerEvents(this,this);
@@ -52,7 +53,9 @@ public final class Collapsion extends JavaPlugin implements Listener {
                 return false;
             }
             if(args.length!=1) {
-                sender.sendMessage("not enough args");
+                double speed = defaultspeed;
+                queues.addQueue(new QueueData(Queues.Command.START,server.getCurrentTick(), speed));
+                sender.sendMessage("start!");
                 return false;
             }
             try {
@@ -102,6 +105,20 @@ public final class Collapsion extends JavaPlugin implements Listener {
             }catch (NumberFormatException e){
                 sender.sendMessage("use integer");
             }
+        }else if(command.getName().equals("col_pause")) {
+            if(!queues.getLatestQueue(Queues.Command.START).isPresent()){
+                sender.sendMessage("not started");
+                return false;
+            }
+            queues.addQueue(new QueueData( Queues.Command.PAUSE,server.getCurrentTick(), 0d));
+            sender.sendMessage("paused!");
+        }else if(command.getName().equals("col_resume")) {
+            if(!queues.getLatestQueue(Queues.Command.PAUSE).isPresent()){
+                sender.sendMessage("not paused");
+                return false;
+            }
+            queues.addQueue(new QueueData( Queues.Command.SPEED,server.getCurrentTick(), queues.getResumedSpeed()));
+            sender.sendMessage("resumed!");
         }
         return true;
     }
@@ -109,7 +126,7 @@ public final class Collapsion extends JavaPlugin implements Listener {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if(command.getName().equals("col_start") && args[0].length()==0) {
-            return Collections.singletonList("0.02");
+            return Collections.singletonList(String.valueOf(defaultspeed));
         }
         if(command.getName().equals("col_speed") && args[0].length()==0) {
             return Collections.singletonList("0.00");

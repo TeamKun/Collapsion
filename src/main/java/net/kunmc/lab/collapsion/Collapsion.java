@@ -1,6 +1,7 @@
 package net.kunmc.lab.collapsion;
 
 import net.minecraft.server.v1_15_R1.*;
+import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Server;
 import org.bukkit.block.Block;
@@ -47,43 +48,53 @@ public final class Collapsion extends JavaPlugin implements Listener {
             return false;
         }
 
-        if(command.getName().equals("col_start")) {
+        if(!command.getName().equals("col")) return false;
+        String commandname = args[0];
+
+        if(commandname.equals("start")) {
             if(queues.getLatestQueue(Queues.Command.START).isPresent()){
                 sender.sendMessage("already started");
                 return false;
             }
-            if(args.length!=1) {
+            if(args.length!=2) {
                 double speed = defaultspeed;
                 queues.addQueue(new QueueData(Queues.Command.START,server.getCurrentTick(), speed));
+                Bukkit.getOnlinePlayers().forEach(player -> {
+                    sender.sendMessage("Started at a speed of "+speed);
+                });
                 sender.sendMessage("start!");
                 return false;
             }
             try {
-                double speed = Double.parseDouble(args[0]);
+                double speed = Double.parseDouble(args[1]);
                 queues.addQueue(new QueueData(Queues.Command.START,server.getCurrentTick(), speed));
-                sender.sendMessage("start!");
+                Bukkit.getOnlinePlayers().forEach(player -> {
+                    sender.sendMessage("Started at a speed of "+speed);
+                });
             }catch (NumberFormatException e){
                 sender.sendMessage("use double");
             }
-        }else if(command.getName().equals("col_speed")){
+        }else if(commandname.equals("speed")){
             if(!queues.getLatestQueue(Queues.Command.START).isPresent()){
                 sender.sendMessage("not started");
                 return false;
             }
-            if(args.length!=1){
+            if(args.length!=2){
                 sender.sendMessage("not enough args");
                 return false;
             }
             try {
                 double speed = Double.parseDouble(args[0]);
                 queues.addQueue(new QueueData( Queues.Command.SPEED,server.getCurrentTick(), speed));
-                sender.sendMessage("changed!");
+                Bukkit.getOnlinePlayers().forEach(player -> {
+                    sender.sendMessage("speed changed to "+speed);
+                });
             }catch (NumberFormatException e){
                 sender.sendMessage("use double");
             }
 
 
-        }else if(command.getName().equals("col_reset")){
+        }else if(commandname.equals("reset")){
             if(!queues.getLatestQueue(Queues.Command.START).isPresent()){
                 sender.sendMessage("not started");
                 return false;
@@ -91,8 +102,8 @@ public final class Collapsion extends JavaPlugin implements Listener {
             queues = new Queues();
             chunkDataMap = new HashMap<>();
             sender.sendMessage("reseted!");
-        }else if(command.getName().equals("col_updateTick")){
-            if(args.length!=1){
+        }else if(commandname.equals("updateTick")){
+            if(args.length!=2){
                 sender.sendMessage("not enough args");
                 return false;
             }
@@ -101,37 +112,49 @@ public final class Collapsion extends JavaPlugin implements Listener {
                 thread.cancel();
                 thread = new Thread(getServer());
                 thread.runTaskTimer(this, 1, speed);
-                sender.sendMessage("changed the update interval");
+                sender.sendMessage("changed the update interval to"+speed);
             }catch (NumberFormatException e){
                 sender.sendMessage("use integer");
             }
-        }else if(command.getName().equals("col_pause")) {
+        }else if(commandname.equals("stop")) {
             if(!queues.getLatestQueue(Queues.Command.START).isPresent()){
                 sender.sendMessage("not started");
                 return false;
             }
             queues.addQueue(new QueueData( Queues.Command.PAUSE,server.getCurrentTick(), 0d));
-            sender.sendMessage("paused!");
-        }else if(command.getName().equals("col_resume")) {
+            Bukkit.getOnlinePlayers().forEach(player -> {
+                sender.sendMessage("stopped!");
+            });
+        }else if(commandname.equals("resume")) {
             if(!queues.getLatestQueue(Queues.Command.PAUSE).isPresent()){
                 sender.sendMessage("not paused");
                 return false;
             }
             queues.addQueue(new QueueData( Queues.Command.SPEED,server.getCurrentTick(), queues.getResumedSpeed()));
-            sender.sendMessage("resumed!");
+            Bukkit.getOnlinePlayers().forEach(player -> {
+                sender.sendMessage("resumed!");
+            });
         }
         return true;
     }
-
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        if(command.getName().equals("col_start") && args[0].length()==0) {
-            return Collections.singletonList(String.valueOf(defaultspeed));
+        if(command.getName().equals("col")){
+            if(args[0].length()==0){
+                return Arrays.asList("start", "speed", "reset", "updateTick", "stop", "resume");
+            }
+        }else {
+            return super.onTabComplete(sender, command, alias, args);
         }
-        if(command.getName().equals("col_speed") && args[0].length()==0) {
-            return Collections.singletonList("0.00");
+        if(args.length ==2) {
+            if (args[0].equals("start") && args[1].length() == 0) {
+                return Collections.singletonList(String.valueOf(defaultspeed));
+            }
+            if (args[0].equals("speed") && args[1].length() == 0) {
+                return Collections.singletonList("0.00");
+            }
         }
-        return super.onTabComplete(sender, command, alias, args);
+        return Collections.EMPTY_LIST;
     }
 
     @Override

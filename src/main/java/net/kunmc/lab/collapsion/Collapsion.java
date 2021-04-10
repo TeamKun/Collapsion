@@ -62,7 +62,6 @@ public final class Collapsion extends JavaPlugin implements Listener {
                 Bukkit.getOnlinePlayers().forEach(player -> {
                     sender.sendMessage("Started at a speed of "+speed);
                 });
-                sender.sendMessage("start!");
                 return false;
             }
             try {
@@ -84,12 +83,13 @@ public final class Collapsion extends JavaPlugin implements Listener {
                 return false;
             }
             try {
-                double speed = Double.parseDouble(args[0]);
+                double speed = Double.parseDouble(args[1]);
                 queues.addQueue(new QueueData( Queues.Command.SPEED,server.getCurrentTick(), speed));
                 Bukkit.getOnlinePlayers().forEach(player -> {
                     sender.sendMessage("speed changed to "+speed);
                 });
             }catch (NumberFormatException e){
+                e.printStackTrace();
                 sender.sendMessage("use double");
             }
 
@@ -108,7 +108,7 @@ public final class Collapsion extends JavaPlugin implements Listener {
                 return false;
             }
             try {
-                int speed = Integer.parseInt(args[0]);
+                int speed = Integer.parseInt(args[1]);
                 thread.cancel();
                 thread = new Thread(getServer());
                 thread.runTaskTimer(this, 1, speed);

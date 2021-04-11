@@ -20,6 +20,8 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 import java.lang.reflect.Field;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public final class Collapsion extends JavaPlugin implements Listener {
     public static Queues queues;
@@ -140,21 +142,22 @@ public final class Collapsion extends JavaPlugin implements Listener {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if(command.getName().equals("col")){
+            if(args.length ==2) {
+                if (args[0].equals("start") && args[1].length() == 0) {
+                    return Collections.singletonList(String.valueOf(defaultspeed));
+                }
+                if (args[0].equals("speed") && args[1].length() == 0) {
+                    return Collections.singletonList("0.00");
+                }
+            }
             if(args[0].length()==0){
                 return Arrays.asList("start", "speed", "reset", "updateTick", "stop", "resume");
+            }else{
+                return Stream.of("start", "speed", "reset", "updateTick", "stop", "resume").filter(e -> e.startsWith(args[0])).collect(Collectors.toList());
             }
         }else {
             return super.onTabComplete(sender, command, alias, args);
         }
-        if(args.length ==2) {
-            if (args[0].equals("start") && args[1].length() == 0) {
-                return Collections.singletonList(String.valueOf(defaultspeed));
-            }
-            if (args[0].equals("speed") && args[1].length() == 0) {
-                return Collections.singletonList("0.00");
-            }
-        }
-        return Collections.EMPTY_LIST;
     }
 
     @Override

@@ -96,22 +96,22 @@ public final class Collapsion extends JavaPlugin implements Listener {
             }
 
 
-        }else if(commandname.equals("reset")){
+        }else if(commandname.equals("stop")){
             if(!queues.getLatestQueue(Queues.Command.START).isPresent()){
                 sender.sendMessage("not started");
                 return false;
             }
             queues = new Queues();
             chunkDataMap = new HashMap<>();
-            sender.sendMessage("reseted!");
-        }else if(commandname.equals("stop")) {
+            sender.sendMessage("stoped!");
+        }else if(commandname.equals("pause")) {
             if(!queues.getLatestQueue(Queues.Command.START).isPresent()){
                 sender.sendMessage("not started");
                 return false;
             }
             queues.addQueue(new QueueData( Queues.Command.PAUSE,server.getCurrentTick(), 0d));
             Bukkit.getOnlinePlayers().forEach(player -> {
-                sender.sendMessage("stopped!");
+                sender.sendMessage("paused!");
             });
         }else if(commandname.equals("resume")) {
             if(!queues.getLatestQueue(Queues.Command.PAUSE).isPresent()){
@@ -131,7 +131,7 @@ public final class Collapsion extends JavaPlugin implements Listener {
             return super.onTabComplete(sender, command, alias, args);
         switch (args.length){
             case 1:
-                return Stream.of("start", "speed", "reset", "stop", "resume")
+                return Stream.of("start", "speed", "stop", "pause", "resume")
                     .filter(e -> e.startsWith(args[0]))
                     .collect(Collectors.toList());
             case 2:

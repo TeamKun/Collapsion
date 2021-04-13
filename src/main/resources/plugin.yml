@@ -5,3 +5,4 @@ api-version: 1.15
 commands:
   col:
     description: collapsion command.
+    usage: /col <start/speed/reset/stop/resume> <value>

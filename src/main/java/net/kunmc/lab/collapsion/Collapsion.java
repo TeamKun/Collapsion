@@ -104,20 +104,6 @@ public final class Collapsion extends JavaPlugin implements Listener {
             queues = new Queues();
             chunkDataMap = new HashMap<>();
             sender.sendMessage("reseted!");
-        }else if(commandname.equals("updateTick")){
-            if(args.length!=2){
-                sender.sendMessage("not enough args");
-                return false;
-            }
-            try {
-                int speed = Integer.parseInt(args[1]);
-                thread.cancel();
-                thread = new Thread(getServer());
-                thread.runTaskTimer(this, 1, speed);
-                sender.sendMessage("changed the update interval to"+speed);
-            }catch (NumberFormatException e){
-                sender.sendMessage("use integer");
-            }
         }else if(commandname.equals("stop")) {
             if(!queues.getLatestQueue(Queues.Command.START).isPresent()){
                 sender.sendMessage("not started");
@@ -141,7 +127,27 @@ public final class Collapsion extends JavaPlugin implements Listener {
     }
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        if(command.getName().equals("col")){
+        if(!command.getName().equals("col"))
+            return super.onTabComplete(sender, command, alias, args);
+        switch (args.length){
+            case 1:
+                return Stream.of("start", "speed", "reset", "stop", "resume")
+                    .filter(e -> e.startsWith(args[0]))
+                    .collect(Collectors.toList());
+            case 2:
+                switch (args[0]){
+                    case "start":
+                        return Collections.singletonList("0.01");
+                    case "speed":
+                        return Collections.singletonList("0.00");
+                    default:
+                        return Collections.EMPTY_LIST;
+                }
+            default:
+                return Collections.EMPTY_LIST;
+        }
+
+        /*if(command.getName().equals("col")){
             if(args.length ==2) {
                 if (args[0].equals("start") && args[1].length() == 0) {
                     return Collections.singletonList(String.valueOf(defaultspeed));
@@ -157,7 +163,7 @@ public final class Collapsion extends JavaPlugin implements Listener {
             }
         }else {
             return super.onTabComplete(sender, command, alias, args);
-        }
+        }*/
     }
 
     @Override

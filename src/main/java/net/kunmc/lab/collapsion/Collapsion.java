@@ -51,6 +51,10 @@ public final class Collapsion extends JavaPlugin implements Listener {
         }
 
         if(!command.getName().equals("col")) return false;
+        if(args.length==0){
+            sender.sendMessage("not enough args");
+            return false;
+        }
         String commandname = args[0];
 
         if(commandname.equals("start")) {
@@ -62,18 +66,20 @@ public final class Collapsion extends JavaPlugin implements Listener {
                 double speed = defaultspeed;
                 queues.addQueue(new QueueData(Queues.Command.START,server.getCurrentTick(), speed));
                 Bukkit.getOnlinePlayers().forEach(player -> {
-                    sender.sendMessage("Started at a speed of "+speed);
+                    player.sendMessage("Started at a speed of "+speed);
                 });
-                return false;
+                return true;
             }
             try {
                 double speed = Double.parseDouble(args[1]);
                 queues.addQueue(new QueueData(Queues.Command.START,server.getCurrentTick(), speed));
                 Bukkit.getOnlinePlayers().forEach(player -> {
-                    sender.sendMessage("Started at a speed of "+speed);
+                    player.sendMessage("Started at a speed of "+speed);
                 });
+                return true;
             }catch (NumberFormatException e){
                 sender.sendMessage("use double");
+                return false;
             }
         }else if(commandname.equals("speed")){
             if(!queues.getLatestQueue(Queues.Command.START).isPresent()){
@@ -88,11 +94,13 @@ public final class Collapsion extends JavaPlugin implements Listener {
                 double speed = Double.parseDouble(args[1]);
                 queues.addQueue(new QueueData( Queues.Command.SPEED,server.getCurrentTick(), speed));
                 Bukkit.getOnlinePlayers().forEach(player -> {
-                    sender.sendMessage("speed changed to "+speed);
+                    player.sendMessage("speed changed to "+speed);
                 });
+                return true;
             }catch (NumberFormatException e){
                 e.printStackTrace();
                 sender.sendMessage("use double");
+                return false;
             }
 
 
@@ -103,7 +111,10 @@ public final class Collapsion extends JavaPlugin implements Listener {
             }
             queues = new Queues();
             chunkDataMap = new HashMap<>();
-            sender.sendMessage("stoped!");
+            Bukkit.getOnlinePlayers().forEach(player -> {
+                player.sendMessage("stoped!");
+            });
+            return true;
         }else if(commandname.equals("pause")) {
             if(!queues.getLatestQueue(Queues.Command.START).isPresent()){
                 sender.sendMessage("not started");
@@ -111,8 +122,9 @@ public final class Collapsion extends JavaPlugin implements Listener {
             }
             queues.addQueue(new QueueData( Queues.Command.PAUSE,server.getCurrentTick(), 0d));
             Bukkit.getOnlinePlayers().forEach(player -> {
-                sender.sendMessage("paused!");
+                player.sendMessage("paused!");
             });
+            return true;
         }else if(commandname.equals("resume")) {
             if(!queues.getLatestQueue(Queues.Command.PAUSE).isPresent()){
                 sender.sendMessage("not paused");
@@ -120,8 +132,9 @@ public final class Collapsion extends JavaPlugin implements Listener {
             }
             queues.addQueue(new QueueData( Queues.Command.SPEED,server.getCurrentTick(), queues.getResumedSpeed()));
             Bukkit.getOnlinePlayers().forEach(player -> {
-                sender.sendMessage("resumed!");
+                player.sendMessage("resumed!");
             });
+            return true;
         }
         return true;
     }
